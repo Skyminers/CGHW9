@@ -3,14 +3,20 @@ layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aColor;
 
 out vec3 ourColor;
+out vec3 normal;
+out vec3 worldPos;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-uniform bool sun;
 
 void main() {
-    gl_Position = projection * view * model * vec4(aPos, 1);
-    if(sun) ourColor = vec3(0.5f, 1.0f, 0);
-    else ourColor = aColor;
+    gl_Position = model * vec4(aPos, 1);
+    worldPos = vec3(gl_Position);
+
+    vec4 centerPosition = model * vec4(vec3(.0,.0,.0), 1);
+
+    normal = vec3(gl_Position - centerPosition);
+    gl_Position = projection * view * gl_Position;
+    ourColor = aColor;
 }

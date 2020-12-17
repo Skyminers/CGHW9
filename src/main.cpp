@@ -67,11 +67,11 @@ int main()
     glEnable(GL_DEPTH_TEST);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    Shaders shader("../src/shaders/vertexShader.glsl", "../src/shaders/fragmentShader.glsl");
+    Shaders normalShader("vertexShader.glsl", "fragmentShader.glsl");
+
+    Shaders sunShader("sunVertexShader.glsl","sunFragmentShader.glsl");
 
     Sphere sun(0.4f);
-    std::cout << sun.getIndicesSize() << std::endl;
-    std::cout << *(sun.getIndicesAddress()+1) << std::endl;
 
     unsigned int VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
@@ -94,9 +94,17 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
+    unsigned int sunVAO;
+    glGenVertexArrays(1, &sunVAO);
+    glBindVertexArray(sunVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float ), 0);
+    glEnableVertexAttribArray(0);
+
     // render loop
     // -----------
-    shader.useProgram();
 
     glm::mat4 rotate1;
     glm::mat4 rotate2;
@@ -122,36 +130,41 @@ int main()
         glClearColor(0.2, 0.3, 0.3, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        selfRotation = glm::rotate(selfRotation, glm::radians(deltaTime/selfAroundTime*360), glm::vec3(0.2f, 0.1f, 0.4f));
-        // draw
-//        for(unsigned int i = 0;i < 10; ++ i) {
-//            glm::mat4 model;
-//            model = glm::translate(model, cubePositions[i]);
-//            model = glm::rotate(model, glm::radians((float)(20*(i+1)*glfwGetTime())),glm::vec3(0.5f, 0.7f, 0.6f));
-//            shader.setMat4("model", model);
-//            glDrawArrays(GL_TRIANGLES, 0, 36);
-//        }
+        Shaders *shader;
 
-        glBindVertexArray(VAO);
+        selfRotation = glm::rotate(selfRotation, glm::radians(deltaTime/selfAroundTime*360), glm::vec3(0.2f, 0.1f, 0.4f));
+
+        glBindVertexArray(sunVAO);
 
         glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCR_WIDTH/SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.getViewMat();
         glm::mat4 model;
         model = model * selfRotation;
-        shader.setMat4("view", view);
-        shader.setMat4("projection", projection);
-        shader.setMat4("model", model);
-        shader.setBool("sun", true);
+        shader = &sunShader;
+        shader->useProgram();
+        shader->setMat4("view", view);
+        shader->setMat4("projection", projection);
+        shader->setMat4("model", model);
 
         glDrawElements(GL_TRIANGLES, sun.getIndicesSize(), GL_UNSIGNED_INT, 0);
 
-        shader.setBool("sun", false);
+        shader = &normalShader;
+        shader->useProgram();
+        shader->setMat4("view", view);
+        shader->setMat4("projection", projection);
+        shader->setMat4("model", model);
+        shader->setVec3("lightColor",1.0f,1.0f,1.0f);
+        shader->setVec3("lightPos",.0,.0,.0);
+        shader->setVec3("cameraPos",camera.getPosition());
+        shader->setFloat("roughness", 1.8);
+        shader->setFloat("fresnel",.1);
+        glBindVertexArray(VAO);
 
         rotate1 = glm::rotate(rotate1, glm::radians(deltaTime/aroundTime1*360), glm::vec3(0.0f, 1.0f, 0.0f));
         model = rotate1;
         model = glm::translate(model, glm::vec3(3.0f, 0, 0));
         model = model * selfRotation;
-        shader.setMat4("model", model);
+        shader->setMat4("model", model);
 
         glDrawElements(GL_TRIANGLES, sun.getIndicesSize(), GL_UNSIGNED_INT, 0);
 
@@ -162,7 +175,7 @@ int main()
         model = glm::translate(model, posSate);
         model = model * selfRotation;
         model = glm::scale(model, glm::vec3(0.3f, 0.3f, 0.3f));
-        shader.setMat4("model", model);
+        shader->setMat4("model", model);
 
         glDrawElements(GL_TRIANGLES, sun.getIndicesSize(), GL_UNSIGNED_INT, 0);
 
@@ -170,7 +183,7 @@ int main()
         model = rotate2;
         model = glm::translate(model, posSp2);
         model = model * selfRotation;
-        shader.setMat4("model", model);
+        shader->setMat4("model", model);
 
         glDrawElements(GL_TRIANGLES, sun.getIndicesSize(), GL_UNSIGNED_INT, 0);
 

@@ -25,6 +25,7 @@ public:
     void processKey(cameraMovement move, float deltaTime);
     void processMouse(float xOffset, float yOffset);
     void processScroll(float yOffset);
+    glm::vec3 getPosition();
 
 private:
     constexpr static float YAW = -90.0f;

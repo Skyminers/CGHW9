@@ -15,14 +15,14 @@ if(WIN32)
 endif()
 
 if(APPLE)
-    set(GLEW_H /usr/local/Cellar/glew/2.1.0_1/include)
+    set(GLEW_H /usr/local/Cellar/glew/2.2.0/include)
     set(GLFW_H /usr/local/Cellar/glfw/3.3.2/include)
     set(GLAD_H /usr/local/include)
     set(KH_H /usr/local/include/KHR)
     include_directories(${GLEW_H} ${GLFW_H} ${GLAD_H} ${KH_H} ${PROJECT_SOURCE_DIR}/include)
 
 # 添加目标链接
-    set(GLEW_LINK /usr/local/Cellar/glew/2.1.0_1/lib/libGLEW.2.1.dylib)
+    set(GLEW_LINK /usr/local/Cellar/glew/2.2.0/lib/libGLEW.2.2.dylib)
     set(GLFW_LINK /usr/local/Cellar/glfw/3.3.2/lib/libglfw.3.dylib)
     link_libraries(${OPENGL} ${GLEW_LINK} ${GLFW_LINK})
 

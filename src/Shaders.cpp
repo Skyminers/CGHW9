@@ -47,6 +47,7 @@ void Shaders::setMat4(const std::string &name, const glm::mat4 &mat) const{
     glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
 }
 
+#define READ_FILE
 
 Shaders::Shaders(const char* vertexShaderFile, const char* fragmentShaderFile){
 #ifdef READ_FILE
@@ -68,7 +69,7 @@ Shaders::Shaders(const char* vertexShaderFile, const char* fragmentShaderFile){
         vertexSource = vShaderStream.str();
         fragmentSource = fShaderStream.str();
     } catch (std::ifstream::failure &e) {
-        std::cout << "ERROR in shaders opening " << std::endl;
+        std::cout << "ERROR when open shaders " << std::endl;
     }
     const char* vShaderSource = vertexSource.c_str();
     const char* fShaderSource = fragmentSource.c_str();
