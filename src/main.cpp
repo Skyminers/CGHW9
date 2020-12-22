@@ -1,19 +1,25 @@
+
+#define STB_IMAGE_IMPLEMENTATION
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "stb/stb_image.h"
 #include "Shaders.h"
 #include "Camera.h"
 #include "Sphere.h"
+#include "skyBox.h"
 #include <iostream>
+#include <vector>
 
-//#define GLFW_DLL
+using namespace std;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* windows, double xOffset, double yOffset);
-int init_set();
+bool getTextureID(unsigned int &ID, char *s);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -21,8 +27,8 @@ const unsigned int SCR_HEIGHT = 600;
 
 const float aroundTime1 = 10.0f;
 const float aroundTime2 = 8.0f;
-const float aroundTime3 = 2.0f;
-const float selfAroundTime = 2.0f;
+const float aroundTime3 = 6.0f;
+const float selfAroundTime = 10.0f;
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
@@ -67,11 +73,16 @@ int main()
     glEnable(GL_DEPTH_TEST);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    Shaders normalShader("vertexShader.glsl", "fragmentShader.glsl");
-
-    Shaders sunShader("sunVertexShader.glsl","sunFragmentShader.glsl");
-
+    Shaders normalShader("./shaders/vertexShader.glsl", "./shaders/fragmentShader.glsl");
+    Shaders sunShader("./shaders/sunVertexShader.glsl","./shaders/sunFragmentShader.glsl");
+    Shaders skyBoxShader("./shaders/skyBoxVS.glsl", "./shaders/skyBoxFS.glsl");
     Sphere sun(0.4f);
+
+    unsigned int earthTexture, moonTexture, sunTexture;
+
+    if(!getTextureID(earthTexture, "./img/earth.jpg")) return 0;
+    if(!getTextureID(moonTexture,"./img/moon.jpg")) return 0;
+    if(!getTextureID(sunTexture, "./img/sun.jpeg")) return 0;
 
     unsigned int VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
@@ -85,9 +96,9 @@ int main()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sun.getIndicesSize()*sizeof(int ), sun.getIndicesAddress(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), 0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*)(3*sizeof(float)) );
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)) );
     glEnableVertexAttribArray(1);
 
     glBindVertexArray(0);
@@ -100,9 +111,12 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float ), 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float ), 0);
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float ), (void*)(3*sizeof(float)) );
+    glEnableVertexAttribArray(1);
 
+    skyBoxInit("./img/skybox");
     // render loop
     // -----------
 
@@ -127,7 +141,7 @@ int main()
 
         // render
         // ------
-        glClearColor(0.2, 0.3, 0.3, 1.0);
+        glClearColor(0.1, 0.1, 0.1, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         Shaders *shader;
@@ -135,6 +149,7 @@ int main()
         selfRotation = glm::rotate(selfRotation, glm::radians(deltaTime/selfAroundTime*360), glm::vec3(0.2f, 0.1f, 0.4f));
 
         glBindVertexArray(sunVAO);
+        glBindTexture(GL_TEXTURE_2D, sunTexture);
 
         glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCR_WIDTH/SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.getViewMat();
@@ -159,6 +174,7 @@ int main()
         shader->setFloat("roughness", 1.8);
         shader->setFloat("fresnel",.1);
         glBindVertexArray(VAO);
+        glBindTexture(GL_TEXTURE_2D, earthTexture);
 
         rotate1 = glm::rotate(rotate1, glm::radians(deltaTime/aroundTime1*360), glm::vec3(0.0f, 1.0f, 0.0f));
         model = rotate1;
@@ -168,6 +184,7 @@ int main()
 
         glDrawElements(GL_TRIANGLES, sun.getIndicesSize(), GL_UNSIGNED_INT, 0);
 
+        glBindTexture(GL_TEXTURE_2D, moonTexture);
         model = rotate1;
         model = glm::translate(model, glm::vec3(3.0f,0,0));
         rotateSate = glm::rotate(rotateSate, glm::radians(deltaTime/aroundTime3*360), axisSate);
@@ -187,6 +204,12 @@ int main()
 
         glDrawElements(GL_TRIANGLES, sun.getIndicesSize(), GL_UNSIGNED_INT, 0);
 
+        shader = &skyBoxShader;
+        shader->useProgram();
+        view = glm::mat4(glm::mat3(camera.getViewMat()));
+        shader->setMat4("view", view);
+        shader->setMat4("projection", projection);
+        drawSkyBox();
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
@@ -202,6 +225,32 @@ int main()
     glfwTerminate();
     return 0;
 }
+
+// Read img file and generate ID of texture.
+// -----------------------------------------
+bool getTextureID(unsigned int &ID, char *s){
+    int width, height, nrChannels;
+    unsigned char *data = stbi_load(s, &width, &height, &nrChannels, 0);
+    if(!data){
+        std::cerr << "Failed to open img." << std::endl;
+        return false;
+    }
+
+    glGenTextures(1, &ID);
+    glBindTexture(GL_TEXTURE_2D, ID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    stbi_image_free(data);
+
+    return true;
+}
+
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------

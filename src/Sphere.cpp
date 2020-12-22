@@ -16,9 +16,11 @@ Sphere::Sphere(float radius, int xFragment, int yFragment) {
             vertex.push_back(xPos);
             vertex.push_back(yPos);
             vertex.push_back(zPos);
-            vertex.push_back( (float )(10*x % 255) / 255);
-            vertex.push_back( (float )(10*y % 255) / 255);
-            vertex.push_back( (float )(10*(x+y) % 255) / 255);
+//            vertex.push_back( (float )(10*x % 255) / 255);
+//            vertex.push_back( (float )(10*y % 255) / 255);
+//            vertex.push_back( (float )(10*(x+y) % 255) / 255);
+            vertex.push_back( xFrac);
+            vertex.push_back( yFrac);
         }
     }
 

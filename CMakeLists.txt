@@ -28,7 +28,7 @@ if(APPLE)
 
 # 执行编译命令
 # 这个glad.c在第2步中说过要拉到项目中，注意路径
-    set(SOURCE_FILES src/glad.c src/main.cpp src/Shaders.cpp src/Camera.cpp src/Sphere.cpp)
+    set(SOURCE_FILES src/glad.c src/main.cpp src/Shaders.cpp src/Camera.cpp src/Sphere.cpp src/skyBox.h)
 
     add_executable(SolarSystem ${SOURCE_FILES})
 
